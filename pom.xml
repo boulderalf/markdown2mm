@@ -4,7 +4,7 @@
 
     <groupId>markdown2mm</groupId>
     <artifactId>markdown2mm</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.2.0</version>
 
     <packaging>pom</packaging>
 
@@ -14,7 +14,7 @@
     <scm>
         <url>https://github.com/boulderalf/markdown2mm</url>
         <developerConnection>scm:git:https://github.com/boulderalf/markdown2mm.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.2.0</tag>
     </scm>
 
     <dependencies>
