@@ -31,6 +31,7 @@ public class ToMmSerializer implements Visitor {
 
 	protected StringBuilder currentStringBuilder = null;
 	protected StringBuilder mainStringBuilder = null;
+	protected Stack<Integer> currentNumberOfTableColumns = new Stack<Integer>();
 
 	public ToMmSerializer() {
 		map.setVersion("freeplane 1.3.0");
@@ -289,8 +290,18 @@ public class ToMmSerializer implements Visitor {
 		visit(trn);
 
 		// create the header divider
+		boolean first = true;
 		for (Node col : trn.getChildren()) {
-			currentStringBuilder.append("---|");
+
+			if (first) {
+				first = false;
+			}
+			else {
+				currentStringBuilder.append("|");
+			}
+
+			currentStringBuilder.append("-----");
+
 		}
 
 		currentStringBuilder.append("\n");
@@ -298,17 +309,35 @@ public class ToMmSerializer implements Visitor {
 
 	@Override
 	public void visit(TableNode tableNode) {
+
+		currentNumberOfTableColumns.push(tableNode.getColumns().size());
 		visitChildren(tableNode);
+		currentNumberOfTableColumns.pop();
 		currentStringBuilder.append(" \n");
 	}
 
 	@Override
 	public void visit(TableRowNode tableRowNode) {
 		// create the header row
+		boolean first = true;
+		int columnCount = 0;
 		for (Node node : tableRowNode.getChildren()) {
+			columnCount += 1;
 			TableCellNode tcn = (TableCellNode) node;
+
+			if (first) {
+				first = false;
+			}
+			else {
+				currentStringBuilder.append("|");
+			}
 			visit(tcn);
-			currentStringBuilder.append("|");
+		}
+
+		// it is possible that not all table cells for this row have been populated.  In that case
+		// we need to make sure we put extra separator characters at the end.
+		for (int i = columnCount; i < currentNumberOfTableColumns.peek(); i++) {
+			currentStringBuilder.append(" |");
 		}
 		currentStringBuilder.append("\n");
 	}
