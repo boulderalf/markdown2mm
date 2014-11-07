@@ -4,8 +4,8 @@ import generated.Html;
 import generated.Map;
 import generated.Richcontent;
 import org.pegdown.ast.*;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import org.pegdown.ast.Node;
+import org.w3c.dom.*;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -160,7 +160,19 @@ public class ToMmSerializer implements Visitor {
 
 	@Override
 	public void visit(QuotedNode quotedNode) {
-		visitChildren(quotedNode);
+		switch (quotedNode.getType()) {
+			case DoubleAngle:
+			case Double:
+				currentStringBuilder.append("\"");
+				visitChildren(quotedNode);
+				currentStringBuilder.append("\"");
+				break;
+			case Single:
+				currentStringBuilder.append("'");
+				visitChildren(quotedNode);
+				currentStringBuilder.append("'");
+				break;
+		}
 	}
 
 	@Override
@@ -185,7 +197,32 @@ public class ToMmSerializer implements Visitor {
 
 	@Override
 	public void visit(SimpleNode simpleNode) {
-		visitChildren(simpleNode);
+
+		switch (simpleNode.getType()) {
+			case Apostrophe:
+				currentStringBuilder.append("'");
+				break;
+			case Ellipsis:
+				currentStringBuilder.append("...");
+				break;
+			case Emdash:
+				currentStringBuilder.append("-");
+				break;
+			case Endash:
+				currentStringBuilder.append("-");
+				break;
+			case HRule:
+				currentStringBuilder.append("-----------------------------");
+				break;
+			case Linebreak:
+				currentStringBuilder.append("\n");
+				break;
+			case Nbsp:
+				currentStringBuilder.append(" ");
+				break;
+			default:
+				throw new IllegalStateException();
+		}
 	}
 
 	@Override
@@ -389,7 +426,7 @@ public class ToMmSerializer implements Visitor {
 			document.appendChild(body);
 
 			for (String line : text.split("\n")) {
-				Element p = (Element) body.appendChild(document.createElement("pre") );
+				Element p = (Element) body.appendChild(document.createElement("p") );
 				p.appendChild(document.createTextNode(line));
 			}
 		} catch (ParserConfigurationException pce) {
@@ -400,7 +437,37 @@ public class ToMmSerializer implements Visitor {
 		return body;
 	}
 
-	public static String prettyFormatXml(String input, int indent) {
+	public void addEntityReferences(org.w3c.dom.Node node) {
+
+		int type = node.getNodeType();
+		if (type == org.w3c.dom.Node.TEXT_NODE) {
+			// the only type with attributes
+			Text text = (Text) node;
+			String s = text.getNodeValue();
+			int nbsp = s.indexOf('\u00A0'); // finds the first A0
+			if (nbsp != -1) {
+				Text middle = text.splitText(nbsp);
+				Text end = middle.splitText(1);
+				org.w3c.dom.Node parent = text.getParentNode();
+				Document factory = text.getOwnerDocument();
+				EntityReference ref = factory.createEntityReference("nbsp");
+				parent.replaceChild(ref, middle);
+				addEntityReferences(end); // finds any subsequent A0s
+//				System.out.println("Added");
+			}
+		} // end if
+
+		else if (node.hasChildNodes()) {
+			NodeList children = node.getChildNodes();
+			for (int i = 0; i < children.getLength(); i++) {
+				org.w3c.dom.Node child = children.item(i);
+				addEntityReferences(child);
+			} // end for
+		} // end if
+
+	}  // end addEntityReferences()
+
+	public String prettyFormatXml(String input, int indent) {
 		try {
 			Source xmlInput = new StreamSource(new StringReader(input));
 			StringWriter stringWriter = new StringWriter();
