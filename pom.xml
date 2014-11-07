@@ -15,7 +15,7 @@
 
     <scm>
         <url>https://github.com/boulderalf/markdown2mm</url>
-        <developerConnection>https://github.com/boulderalf/markdown2mm.git</developerConnection>
+        <developerConnection>scm:git:https://github.com/boulderalf/markdown2mm.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -56,8 +56,6 @@
                 </executions>
                 <configuration>
                     <schemaDirectory>${basedir}/src/main/resources/schemas</schemaDirectory>
-                    <!--<schemaFiles>meterReadEventWrapper.xsd</schemaFiles>-->
-                    <!--<schemaFiles>meterReadEventWrapper.xsd</schemaFiles>-->
                 </configuration>
             </plugin>
         </plugins>
