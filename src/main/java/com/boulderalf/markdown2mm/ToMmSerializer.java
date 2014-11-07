@@ -7,13 +7,13 @@ import org.pegdown.ast.*;
 import org.pegdown.ast.Node;
 import org.w3c.dom.*;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.*;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.StringReader;
@@ -40,12 +40,27 @@ public class ToMmSerializer implements Visitor {
 		map.setNode(node);
 	}
 
+	/**
+	 * Returns an Map object
+	 * @param astRoot
+	 * @return
+	 */
 	public Map toMm(RootNode astRoot) {
 		currentStringBuilder = mainStringBuilder = new StringBuilder();
 		checkArgNotNull(astRoot, "astRoot");
 		astRoot.accept(this);
 		flushStringBuilderToCurrentNode();
 		return map;
+	}
+
+	/**
+	 * returns an XML String that can be saved as a Freeplane .mm file.
+	 * @param astRoot
+	 * @return
+	 */
+	public String toMmXmlString(RootNode astRoot) throws JAXBException {
+		Map map = toMm(astRoot);
+		return getXML(map);
 	}
 
 	@Override
@@ -505,11 +520,43 @@ public class ToMmSerializer implements Visitor {
 			transformerFactory.setAttribute("indent-number", indent);
 			Transformer transformer = transformerFactory.newTransformer();
 			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+			transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 			transformer.transform(xmlInput, xmlOutput);
 			return xmlOutput.getWriter().toString();
 		} catch (Exception e) {
 			throw new RuntimeException(e); // simple exception handling, please review it
 		}
 	}
+
+	public String getXML(Object obj) throws JAXBException {
+
+		// Omit off the XML Declaration because Freeplane does not like it.
+		StringWriter stringWriter = new StringWriter();
+		JAXBContext context = null;
+		Marshaller marshaller = null;
+		context = JAXBContext.newInstance(obj.getClass());
+		marshaller = context.createMarshaller();
+		marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+		marshaller.setProperty(Marshaller.JAXB_ENCODING, "UTF-8");
+		marshaller.marshal(obj, stringWriter);
+		String xmlString = stringWriter.getBuffer().toString();
+
+		StringWriter writer = new StringWriter();
+
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer;
+		try {
+			transformer = tf.newTransformer();
+			transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+			transformer.transform(new StreamSource(new StringReader(xmlString)), new StreamResult(writer));
+		} catch (TransformerConfigurationException e) {
+			e.printStackTrace();
+		} catch (TransformerException e) {
+			e.printStackTrace();
+		}
+
+		return writer.getBuffer().toString();
+	}
+
 
 }
